@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evah Indicações</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --bg:#EEF1F5; --surface:#FFFFFF; --ink:#1D2433; --muted:#5E6778; --line:#D9DEE7;
+    --brand:#4B34C7; --brand-ink:#FFFFFF; --brand-soft:#ECE9FB;
+    --new:#2F5DD8; --new-bg:#E7EEFD;
+    --service:#9A6300; --service-bg:#FDF1DC;
+    --sched:#17794F; --sched-bg:#DFF3E9;
+    --cancel:#A63A33; --cancel-bg:#F8E4E2;
+    --radius-lg:14px; --radius-sm:8px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Manrope,system-ui,-apple-system,"Segoe UI",sans-serif}
+  button,input,select{font:inherit;color:inherit}
+  .hidden{display:none!important}
+  :focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+
+  /* topo */
+  header{background:var(--surface);border-bottom:1px solid var(--line)}
+  .bar{max-width:1080px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .logo{font-weight:800;font-size:18px;letter-spacing:-.01em}
+  .logo span{color:var(--brand)}
+  nav{display:flex;gap:4px;flex:1}
+  nav button{border:0;background:none;padding:8px 14px;border-radius:999px;font-weight:600;color:var(--muted);cursor:pointer}
+  nav button[aria-current="page"]{background:var(--brand-soft);color:var(--brand)}
+  .who{font-size:13px;color:var(--muted);display:flex;gap:12px;align-items:center}
+  .link{background:none;border:0;color:var(--brand);font-weight:600;cursor:pointer;padding:0}
+
+  main{max-width:1080px;margin:0 auto;padding:28px 20px 60px}
+  h1{font-size:26px;letter-spacing:-.02em;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 24px}
+
+  /* campos */
+  label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+  input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#fff}
+  input:focus{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px var(--brand-soft)}
+  input[aria-invalid="true"]{border-color:var(--cancel)}
+  .btn{border:0;border-radius:var(--radius-sm);padding:12px 18px;font-weight:700;cursor:pointer}
+  .btn-primary{background:var(--brand);color:var(--brand-ink)}
+  .btn-primary:disabled{opacity:.55;cursor:wait}
+  .btn-ghost{background:none;border:1px dashed var(--brand);color:var(--brand)}
+  .err{color:var(--cancel);font-size:13px;margin-top:6px}
+
+  /* login */
+  .login{max-width:380px;margin:10vh auto;background:var(--surface);padding:32px;border-radius:var(--radius-lg);border:1px solid var(--line)}
+  .login .field{margin-bottom:14px}
+  .login .btn{width:100%;margin-top:6px}
+
+  /* nova indicação: a cadeia indicador → indicados */
+  .chain{display:grid;gap:0}
+  .referrer{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:22px}
+  .referrer h2,.leads h2{font-size:15px;margin:0 0 14px}
+  .grid3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px}
+  .leads{position:relative;margin-left:34px;padding:22px 0 0 34px;border-left:2px solid var(--brand)}
+  .lead-row{position:relative;display:grid;grid-template-columns:2fr 1fr auto;gap:12px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:12px}
+  .lead-row::before{content:"";position:absolute;left:-36px;top:50%;width:34px;border-top:2px solid var(--brand)}
+  .remove{background:none;border:0;color:var(--muted);cursor:pointer;padding:10px;border-radius:var(--radius-sm)}
+  .remove:hover{color:var(--cancel);background:var(--cancel-bg)}
+  .actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 0 70px}
+
+  /* resultado */
+  .result{margin-top:24px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:20px 22px}
+  .result h3{margin:0 0 2px;font-size:17px}
+  .result ul{list-style:none;padding:0;margin:14px 0 0}
+  .result li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+  .ok{color:var(--sched);font-weight:700}.warn{color:var(--service);font-weight:700}.bad{color:var(--cancel);font-weight:700}
+
+  /* listagem */
+  .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:600;font-size:13px;cursor:pointer}
+  .chip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .search{max-width:260px;margin-left:auto}
+  .table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg)}
+  table{width:100%;border-collapse:collapse;min-width:720px}
+  th{text-align:left;font-size:12px;color:var(--muted);font-weight:700;padding:12px 16px;border-bottom:1px solid var(--line)}
+  td{padding:13px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr.row{cursor:pointer}
+  tr.row:hover td{background:#F7F8FB}
+  .status{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:700;white-space:nowrap}
+  .s-NEW_LEAD{color:var(--new);background:var(--new-bg)}
+  .s-IN_SERVICE{color:var(--service);background:var(--service-bg)}
+  .s-SCHEDULED{color:var(--sched);background:var(--sched-bg)}
+  .s-CANCELLED{color:var(--cancel);background:var(--cancel-bg)}
+  .appt{display:block;font-size:12px;color:var(--muted);margin-top:3px}
+  .timeline{background:#F7F8FB;font-size:13.5px}
+  .timeline ol{margin:0;padding-left:18px}
+  .timeline li{margin:3px 0}
+  .timeline time{color:var(--muted);margin-right:8px;font-variant-numeric:tabular-nums}
+  .empty{padding:36px;text-align:center;color:var(--muted)}
+
+  @media (max-width:720px){
+    .grid3{grid-template-columns:1fr}
+    .lead-row{grid-template-columns:1fr}
+    .leads{margin-left:14px;padding-left:18px}
+    .lead-row::before{left:-20px;width:18px}
+    .actions{margin-left:0}
+    .search{margin-left:0;max-width:none}
+  }
+  @media (prefers-reduced-motion:no-preference){ .result{animation:rise .25s ease-out} @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}} }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<section id="view-login" class="login hidden" aria-labelledby="t-login">
+  <div class="logo" style="margin-bottom:18px">Evah <span>Indicações</span></div>
+  <h1 id="t-login" style="font-size:20px">Entrar</h1>
+  <p class="sub">Use o e-mail e a senha cadastrados para a sua clínica.</p>
+  <form id="f-login" novalidate>
+    <div class="field"><label for="l-email">E-mail</label><input id="l-email" type="email" autocomplete="username" required></div>
+    <div class="field"><label for="l-pass">Senha</label><input id="l-pass" type="password" autocomplete="current-password" required></div>
+    <button class="btn btn-primary" id="b-login">Entrar</button>
+    <p class="err" id="login-err" role="alert"></p>
+  </form>
+</section>
+
+<!-- APP -->
+<div id="view-app" class="hidden">
+  <header><div class="bar">
+    <div class="logo">Evah <span>Indicações</span></div>
+    <nav aria-label="Telas">
+      <button data-tab="new" aria-current="page">Nova indicação</button>
+      <button data-tab="list">Indicações</button>
+    </nav>
+    <div class="who"><span id="who"></span><button class="link" id="b-logout">Sair</button></div>
+  </div></header>
+
+  <main>
+    <p class="err" id="app-err" role="alert"></p>
+
+    <!-- NOVA INDICAÇÃO -->
+    <section id="tab-new" aria-labelledby="t-new">
+      <h1 id="t-new">Nova indicação</h1>
+      <p class="sub">Cadastre quem indicou e as pessoas indicadas. Se o cliente já existir, as indicações entram no cadastro dele.</p>
+      <form id="f-ref" novalidate>
+        <div class="chain">
+          <div class="referrer">
+            <h2>Cliente indicador</h2>
+            <div class="grid3">
+              <div><label for="r-name">Nome completo</label><input id="r-name" autocomplete="off" required></div>
+              <div><label for="r-cpf">CPF</label><input id="r-cpf" inputmode="numeric" placeholder="000.000.000-00" autocomplete="off"></div>
+              <div><label for="r-phone">Telefone</label><input id="r-phone" inputmode="tel" placeholder="(19) 99999-9999" autocomplete="off" required></div>
+            </div>
+          </div>
+          <div class="leads">
+            <h2>Indicações</h2>
+            <div id="lead-list"></div>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn btn-ghost" id="b-add">+ Adicionar indicação</button>
+          <button class="btn btn-primary" id="b-submit">Cadastrar indicações</button>
+        </div>
+        <p class="err" id="form-err" role="alert"></p>
+      </form>
+      <div id="result" aria-live="polite"></div>
+    </section>
+
+    <!-- LISTAGEM -->
+    <section id="tab-list" class="hidden" aria-labelledby="t-list">
+      <h1 id="t-list">Indicações</h1>
+      <p class="sub">Clique em uma linha para ver o histórico completo do lead.</p>
+      <div class="filters" role="group" aria-label="Filtrar por status">
+        <button class="chip" data-status="" aria-pressed="true">Todos</button>
+        <button class="chip" data-status="NEW_LEAD" aria-pressed="false">Novo Lead</button>
+        <button class="chip" data-status="IN_SERVICE" aria-pressed="false">Em Atendimento</button>
+        <button class="chip" data-status="SCHEDULED" aria-pressed="false">Agendado</button>
+        <button class="chip" data-status="CANCELLED" aria-pressed="false">Cancelado</button>
+        <input class="search" id="q" type="search" placeholder="Buscar por nome" aria-label="Buscar por nome">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Indicado</th><th>Telefone</th><th>Indicado por</th><th>Data</th><th>Status</th></tr></thead>
+          <tbody id="rows"><tr><td colspan="5" class="empty">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+// Chave publicável (pública por definição). Todo o acesso é protegido por login + RLS.
+const SUPABASE_URL = "https://zqdyytelznxaceadtooh.supabase.co";
+const SUPABASE_KEY = "sb_publishable_TCz4U5qlzz1Sj64a9q2P8g_pXUKKs5s";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const STATUS = { NEW_LEAD:"Novo Lead", IN_SERVICE:"Em Atendimento", SCHEDULED:"Agendado", CANCELLED:"Cancelado" };
+const fmtPhone = (n) => { const d = String(n||"").replace(/^55/, ""); return d.length===11 ? `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}` : d.length===10 ? `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}` : n; };
+const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString("pt-BR") : "";
+const fmtDT = (iso) => new Date(iso).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+
+// máscaras
+function maskPhone(v){ const d=v.replace(/\D/g,"").slice(0,11); if(d.length<=2) return d.length?`(${d}`:""; if(d.length<=6) return `(${d.slice(0,2)}) ${d.slice(2)}`; if(d.length<=10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`; return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`; }
+function maskCPF(v){ const d=v.replace(/\D/g,"").slice(0,11); return d.replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d{1,2})$/,"$1-$2"); }
+document.addEventListener("input", (e) => {
+  if (e.target.matches("[data-mask=phone], #r-phone")) e.target.value = maskPhone(e.target.value);
+  if (e.target.id === "r-cpf") e.target.value = maskCPF(e.target.value);
+});
+
+// ---------- sessão ----------
+async function boot(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if (!session) return show("login");
+  const { data: prof, error } = await sb.from("profiles").select("full_name, role, organizations(name)").eq("id", session.user.id).maybeSingle();
+  show("app");
+  if (error || !prof) { $("#app-err").textContent = "Seu usuário ainda não está vinculado a uma clínica. Peça ao administrador para concluir o cadastro."; $("#who").textContent = session.user.email; return; }
+  $("#who").textContent = `${prof.organizations?.name ?? ""} · ${prof.full_name || session.user.email}`;
+}
+function show(v){ $("#view-login").classList.toggle("hidden", v!=="login"); $("#view-app").classList.toggle("hidden", v!=="app"); }
+
+$("#f-login").addEventListener("submit", async (e) => {
+  e.preventDefault(); $("#login-err").textContent = ""; $("#b-login").disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email: $("#l-email").value.trim(), password: $("#l-pass").value });
+  $("#b-login").disabled = false;
+  if (error) { $("#login-err").textContent = "E-mail ou senha incorretos."; return; }
+  boot();
+});
+$("#b-logout").addEventListener("click", async () => { await sb.auth.signOut(); show("login"); });
+
+// ---------- abas ----------
+document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("nav button").forEach((x) => x.removeAttribute("aria-current"));
+  b.setAttribute("aria-current", "page");
+  $("#tab-new").classList.toggle("hidden", b.dataset.tab !== "new");
+  $("#tab-list").classList.toggle("hidden", b.dataset.tab !== "list");
+  if (b.dataset.tab === "list") loadList();
+}));
+
+// ---------- nova indicação ----------
+let leadSeq = 0;
+function addLead(){
+  const i = ++leadSeq;
+  const row = document.createElement("div");
+  row.className = "lead-row";
+  row.innerHTML = `
+    <div><label for="ln-${i}">Nome</label><input id="ln-${i}" data-f="name" autocomplete="off"></div>
+    <div><label for="lp-${i}">Telefone</label><input id="lp-${i}" data-f="phone" data-mask="phone" inputmode="tel" placeholder="(19) 99999-9999" autocomplete="off"></div>
+    <button type="button" class="remove" aria-label="Remover indicação">Remover</button>`;
+  row.querySelector(".remove").addEventListener("click", () => { if ($("#lead-list").children.length > 1) row.remove(); });
+  $("#lead-list").appendChild(row);
+  row.querySelector("input").focus();
+}
+$("#b-add").addEventListener("click", addLead);
+addLead();
+
+$("#f-ref").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("#form-err").textContent = ""; $("#result").innerHTML = "";
+  document.querySelectorAll("[aria-invalid]").forEach((x) => x.removeAttribute("aria-invalid"));
+
+  const referrer = { full_name: $("#r-name").value.trim(), cpf: $("#r-cpf").value.trim() || null, phone: $("#r-phone").value.trim() };
+  const leads = [...document.querySelectorAll(".lead-row")].map((r) => ({
+    full_name: r.querySelector("[data-f=name]").value.trim(), phone: r.querySelector("[data-f=phone]").value.trim()
+  })).filter((l) => l.full_name || l.phone);
+
+  if (!referrer.full_name) { $("#r-name").setAttribute("aria-invalid","true"); $("#form-err").textContent = "Informe o nome do cliente indicador."; return; }
+  if (referrer.phone.replace(/\D/g,"").length < 10) { $("#r-phone").setAttribute("aria-invalid","true"); $("#form-err").textContent = "Informe o telefone do cliente com DDD."; return; }
+  if (!leads.length) { $("#form-err").textContent = "Adicione ao menos uma indicação."; return; }
+
+  $("#b-submit").disabled = true; $("#b-submit").textContent = "Cadastrando…";
+  const { data, error } = await sb.functions.invoke("register-referral", { body: { referrer, leads } });
+  $("#b-submit").disabled = false; $("#b-submit").textContent = "Cadastrar indicações";
+
+  let res = data;
+  if (error) { try { res = await error.context.json(); } catch { res = null; } }
+  if (!res?.ok) {
+    const map = { "referrer.cpf":"#r-cpf", "referrer.phone":"#r-phone", "referrer.full_name":"#r-name" };
+    if (res?.field && map[res.field]) $(map[res.field]).setAttribute("aria-invalid","true");
+    $("#form-err").textContent = res?.message || (res?.error === "USER_WITHOUT_ORGANIZATION" ? "Seu usuário não está vinculado a uma clínica." : "Não foi possível cadastrar. Verifique os dados e tente de novo.");
+    return;
+  }
+
+  const s = res.summary;
+  const refMsg = res.referrer.status === "CREATED" ? "Cliente cadastrado." : "Cliente já cadastrado: indicações adicionadas ao cadastro dele.";
+  const label = (l) => l.status === "CREATED" ? ['ok','cadastrada'] : l.status === "ALREADY_REFERRED" ? ['warn', l.same_referrer ? 'já indicada por este cliente' : 'já indicada por outro cliente'] : l.status === "DUPLICATE_IN_REQUEST" ? ['warn','repetida neste envio'] : ['bad', (l.message || 'inválida').toLowerCase()];
+  $("#result").innerHTML = `
+    <h3>${esc(refMsg)}</h3>
+    <div>${s.created} ${s.created === 1 ? "indicação cadastrada" : "indicações cadastradas"}.</div>
+    <ul>${res.leads.map((l) => { const [c,t] = label(l); return `<li><span>${esc(l.full_name || "(sem nome)")}</span><span class="${c}">${esc(t)}</span></li>`; }).join("")}</ul>`;
+  if (s.created > 0 && s.invalid === 0) { $("#f-ref").reset(); $("#lead-list").innerHTML = ""; addLead(); $("#r-name").focus(); }
+});
+
+// ---------- listagem ----------
+let filter = "", rowsCache = [];
+document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
+  document.querySelectorAll(".chip").forEach((x) => x.setAttribute("aria-pressed","false"));
+  c.setAttribute("aria-pressed","true"); filter = c.dataset.status; loadList();
+}));
+$("#q").addEventListener("input", renderRows);
+
+async function loadList(){
+  $("#rows").innerHTML = `<tr><td colspan="5" class="empty">Carregando…</td></tr>`;
+  let q = sb.from("referral_leads_overview").select("id, full_name, phone_normalized, referrer_name, created_at, status, appointment_date, appointment_time").order("created_at", { ascending:false }).limit(500);
+  if (filter) q = q.eq("status", filter);
+  const { data, error } = await q;
+  if (error) { $("#rows").innerHTML = `<tr><td colspan="5" class="empty">Não foi possível carregar as indicações.</td></tr>`; return; }
+  rowsCache = data; renderRows();
+}
+function renderRows(){
+  const term = $("#q").value.trim().toLowerCase();
+  const list = rowsCache.filter((r) => !term || r.full_name.toLowerCase().includes(term) || r.referrer_name.toLowerCase().includes(term));
+  if (!list.length) { $("#rows").innerHTML = `<tr><td colspan="5" class="empty">Nenhuma indicação ${filter ? "com este status" : "cadastrada ainda"}.</td></tr>`; return; }
+  $("#rows").innerHTML = list.map((r) => `
+    <tr class="row" data-id="${r.id}" tabindex="0" aria-expanded="false">
+      <td><strong>${esc(r.full_name)}</strong></td>
+      <td>${esc(fmtPhone(r.phone_normalized))}</td>
+      <td>${esc(r.referrer_name)}</td>
+      <td>${fmtDate(r.created_at)}</td>
+      <td><span class="status s-${r.status}">${STATUS[r.status] ?? r.status}</span>${r.status==="SCHEDULED" && r.appointment_date ? `<span class="appt">${new Date(r.appointment_date+"T12:00").toLocaleDateString("pt-BR")}${r.appointment_time ? " às "+r.appointment_time.slice(0,5) : ""}</span>` : ""}</td>
+    </tr>`).join("");
+}
+async function toggleTimeline(tr){
+  const next = tr.nextElementSibling;
+  if (next?.classList.contains("timeline")) { next.remove(); tr.setAttribute("aria-expanded","false"); return; }
+  tr.setAttribute("aria-expanded","true");
+  const t = document.createElement("tr"); t.className = "timeline";
+  t.innerHTML = `<td colspan="5">Carregando histórico…</td>`; tr.after(t);
+  const { data, error } = await sb.from("lead_timeline").select("created_at, description").eq("lead_id", tr.dataset.id).order("created_at");
+  t.firstElementChild.innerHTML = error ? "Não foi possível carregar o histórico." :
+    `<ol>${data.map((e) => `<li><time>${fmtDT(e.created_at)}</time>${esc(e.description)}</li>`).join("")}</ol>`;
+}
+$("#rows").addEventListener("click", (e) => { const tr = e.target.closest("tr.row"); if (tr) toggleTimeline(tr); });
+$("#rows").addEventListener("keydown", (e) => { const tr = e.target.closest("tr.row"); if (tr && (e.key==="Enter"||e.key===" ")) { e.preventDefault(); toggleTimeline(tr); } });
+
+sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_OUT") show("login"); });
+boot();
+</script>
+</body>
+</html>
