@@ -269,11 +269,17 @@ $("#f-ref").addEventListener("submit", async (e) => {
   if (!leads.length) { $("#form-err").textContent = "Adicione ao menos uma indicação."; return; }
 
   $("#b-submit").disabled = true; $("#b-submit").textContent = "Cadastrando…";
-  const { data, error } = await sb.functions.invoke("register-referral", { body: { referrer, leads } });
+  let res = null;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const r = await fetch("/api/register-referral", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
+      body: JSON.stringify({ referrer, leads }),
+    });
+    res = await r.json();
+  } catch { res = null; }
   $("#b-submit").disabled = false; $("#b-submit").textContent = "Cadastrar indicações";
-
-  let res = data;
-  if (error) { try { res = await error.context.json(); } catch { res = null; } }
   if (!res?.ok) {
     const map = { "referrer.cpf":"#r-cpf", "referrer.phone":"#r-phone", "referrer.full_name":"#r-name" };
     if (res?.field && map[res.field]) $(map[res.field]).setAttribute("aria-invalid","true");
@@ -287,6 +293,7 @@ $("#f-ref").addEventListener("submit", async (e) => {
   $("#result").innerHTML = `
     <h3>${esc(refMsg)}</h3>
     <div>${s.created} ${s.created === 1 ? "indicação cadastrada" : "indicações cadastradas"}.</div>
+    ${res.ghl ? `<div class="${res.ghl.falhas ? 'warn' : 'ok'}" style="margin-top:4px">${res.ghl.falhas ? `${res.ghl.enviados} enviada(s) ao GoHighLevel; ${res.ghl.falhas} será(ão) reenviada(s) automaticamente.` : `${res.ghl.enviados} enviada(s) ao GoHighLevel (pipeline Indicação).`}</div>` : ""}
     <ul>${res.leads.map((l) => { const [c,t] = label(l); return `<li><span>${esc(l.full_name || "(sem nome)")}</span><span class="${c}">${esc(t)}</span></li>`; }).join("")}</ul>`;
   if (s.created > 0 && s.invalid === 0) { $("#f-ref").reset(); $("#lead-list").innerHTML = ""; addLead(); $("#r-name").focus(); }
 });

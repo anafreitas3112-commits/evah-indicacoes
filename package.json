@@ -1,0 +1,14 @@
+{
+  "name": "evah-indicacoes",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Evah Indicações — tela + integrações (GoHighLevel, Stevo, Evah Monitor). Banco: Supabase.",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "@types/node": "^20.14.0"
+  }
+}

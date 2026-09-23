@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/worker.ts": { "maxDuration": 60 },
+    "api/register-referral.ts": { "maxDuration": 60 },
+    "api/stevo-webhook.ts": { "maxDuration": 30 }
+  }
+}
