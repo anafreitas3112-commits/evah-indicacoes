@@ -4,7 +4,7 @@
 //        ingest_whatsapp_message (vincula ao lead, eventos, NEW_LEAD -> IN_SERVICE, fila da IA).
 import { createHash } from "crypto";
 import { Req, Res, header, queryParam, serviceDb, errorMessage } from "../lib/core";
-import { mapStevoPayload } from "../lib/stevo-adapter";
+import { mapStevoPayload, sanitizeStevoPayload } from "../lib/stevo-adapter";
 
 export default async function handler(req: Req, res: Res) {
   if (req.method !== "POST") return res.status(405).json({ ok: false, error: "METHOD_NOT_ALLOWED" });
@@ -18,7 +18,7 @@ export default async function handler(req: Req, res: Res) {
     if (authErr) throw new Error(authErr.message);
     if (!orgId) return res.status(401).json({ ok: false, error: "UNAUTHORIZED" });
 
-    const raw = req.body;
+    const raw = sanitizeStevoPayload(req.body);   // nunca guardar a chave da instância
     if (!raw || typeof raw !== "object") return res.status(400).json({ ok: false, error: "INVALID_JSON" });
     const payloadHash = createHash("sha256").update(JSON.stringify(raw)).digest("hex");
 
@@ -34,12 +34,13 @@ export default async function handler(req: Req, res: Res) {
     if (mapped.kind !== "message") {
       await db.from("webhook_inbox").update({
         status: mapped.kind === "ignored" ? "IGNORED" : "MAPPING_PENDING", error: mapped.reason, processed_at: new Date().toISOString(),
+        ...(mapped.kind === "ignored" ? { raw_payload: {} } : {}),
       }).eq("id", inboxId);
       return res.status(202).json({ ok: true, stored: true, status: mapped.kind, reason: mapped.reason });
     }
 
     const { data: result, error: ingErr } = await db.rpc("ingest_whatsapp_message", {
-      p_organization_id: orgId, p_message: { ...mapped.message, raw_payload: raw },
+      p_organization_id: orgId, p_message: mapped.message,
     });
     if (ingErr || !result?.ok) {
       const msg = ingErr?.message ?? result?.error ?? "UNKNOWN";
@@ -47,8 +48,12 @@ export default async function handler(req: Req, res: Res) {
       await db.from("system_logs").insert({ organization_id: orgId, level: "ERROR", source: "stevo-webhook", message: msg, context: { inbox_id: inboxId } });
       return res.status(ingErr ? 500 : 422).json({ ok: false, error: msg });
     }
+    // Privacidade: depois de processado, o payload bruto é descartado (a mensagem já está em whatsapp_messages).
+    // Conversas que não são de indicação: nada é guardado.
     await db.from("webhook_inbox").update({
-      status: result.duplicate ? "DUPLICATE" : "PROCESSED", message_id: result.message_id, processed_at: new Date().toISOString(),
+      status: result.ignored ? "IGNORED" : result.duplicate ? "DUPLICATE" : "PROCESSED",
+      error: result.ignored ?? null, message_id: result.message_id ?? null,
+      raw_payload: {}, processed_at: new Date().toISOString(),
     }).eq("id", inboxId);
     return res.status(200).json({ ok: true, ...result });
   } catch (e) {
